@@ -11,7 +11,720 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외솔 AI 평가 피드백 생성기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; word-break: keep-all; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen font-sans">
+    <!-- UI Layout -->
+    <div class="flex flex-col md:flex-row h-full max-w-7xl mx-auto bg-white shadow-xl overflow-hidden">
+        
+        <!-- 왼쪽: 입력부 -->
+        <div class="w-full md:w-5/12 bg-gray-50 p-6 border-r border-gray-100 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+            <div>
+                <h1 class="text-3xl font-extrabold flex items-center gap-2 tracking-tight">
+                    <svg class="w-8 h-8 text-indigo-600 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">외솔 AI 평가 튜터</span>
+                </h1>
+                <p class="text-sm text-gray-500 mt-2 break-keep">평가 기준과 결과를 입력하면 맞춤형 평어와 개별 피드백을 자동 생성합니다.</p>
+            </div>
+
+            <!-- API 키 입력 영역 추가 -->
+            <div class="bg-gray-100 rounded-xl p-4 border border-gray-200">
+                <label class="block text-xs font-bold text-gray-700 mb-2">🔑 Gemini API 키 (필수)</label>
+                <input type="password" id="apiKeyInput" placeholder="발급받은 API 키를 여기에 붙여넣으세요" class="w-full border-gray-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 border shadow-sm bg-white">
+                <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
+                    <span>※ API 키는 브라우저에만 유지되며 외부로 전송되지 않습니다.</span>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 font-bold hover:underline">API 키 무료 발급받기 &rarr;</a>
+                </div>
+            </div>
+
+            <!-- 튜터 사용 방법 가이드 -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800">
+                <h3 class="font-bold mb-2 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    튜터 사용 방법
+                </h3>
+                <ol class="list-decimal pl-5 space-y-1 mb-3">
+                    <li><strong>과목 설정:</strong> 학년, 과목을 선택하고 영역을 적으세요. (영역별로 입력 데이터가 자동 저장됩니다.)</li>
+                    <li><strong>평가 기준안:</strong> 파일(한글, 워드 등)을 한 번 업로드하세요.</li>
+                    <li><strong>학생 평가 결과:</strong> <button id="btnDownloadTemplate" class="underline font-bold text-indigo-600 hover:text-indigo-900">CSV 양식 다운로드</button>를 클릭하여 작성 후 업로드하세요.</li>
+                    <li><strong>관찰 평가:</strong> 아래 <strong>관찰 평가 창</strong>을 열어 직접 작성합니다. (선택 사항)</li>
+                </ol>
+                <div class="mt-3 p-2 bg-indigo-100 rounded-lg text-center font-bold text-indigo-900">
+                    ※ 현재 프로그램 테스트 중으로, '내황초등학교 5학년 2학기' 평가 기준안과 문항이 기본 적용되어 있습니다.
+                </div>
+            </div>
+
+            <!-- 학년, 과목, 영역 선택 -->
+            <div class="flex gap-4">
+                <div class="w-1/3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">🎓 학년</label>
+                    <select id="gradeSelect" class="w-full border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border bg-white">
+                        <option value="1학년">1학년</option>
+                        <option value="2학년">2학년</option>
+                        <option value="3학년">3학년</option>
+                        <option value="4학년">4학년</option>
+                        <option value="5학년">5학년</option>
+                        <option value="6학년">6학년</option>
+                    </select>
+                </div>
+                <div class="w-1/3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">📚 과목</label>
+                    <select id="subjectSelect" class="w-full border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border bg-white">
+                        <option value="국어">국어</option>
+                        <option value="수학">수학</option>
+                        <option value="사회">사회</option>
+                        <option value="과학">과학</option>
+                        <option value="영어">영어</option>
+                        <option value="도덕">도덕</option>
+                        <option value="음악">음악</option>
+                        <option value="미술">미술</option>
+                        <option value="체육">체육</option>
+                        <option value="실과">실과</option>
+                        <option value="통합교과(바·슬·즐)">통합교과(바·슬·즐)</option>
+                    </select>
+                </div>
+                <div class="w-1/3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">🎯 영역</label>
+                    <input type="text" id="areaInput" placeholder="예: 도형, 읽기..." class="w-full border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border bg-white">
+                </div>
+            </div>
+
+            <!-- 평가 기준안 입력 -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">📝 평가 기준안 및 문항지 (모든 파일 지원)</label>
+                <div id="dropzone-criteria" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                    <input type="file" id="file-criteria" class="hidden" />
+                    <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p class="text-sm text-gray-500">클릭하거나 파일을 드래그 앤 드롭하세요.</p>
+                    <p id="filename-criteria" class="text-sm font-semibold text-indigo-600 mt-2 hidden hover:underline hover:text-indigo-800 transition-colors" title="클릭하여 파일 내용 확인"></p>
+                </div>
+            </div>
+
+            <!-- 학생 평가 결과 입력 -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">📊 학생 평가 결과 (모든 파일 지원)</label>
+                <div id="dropzone-results" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                    <input type="file" id="file-results" class="hidden" />
+                    <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <p class="text-sm text-gray-500">클릭하거나 파일을 드래그 앤 드롭하세요.</p>
+                    <p id="filename-results" class="text-sm font-semibold text-indigo-600 mt-2 hidden hover:underline hover:text-indigo-800 transition-colors" title="클릭하여 파일 내용 확인"></p>
+                </div>
+            </div>
+
+            <!-- 학생 수 설정 및 관찰 평가 입력 -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">👥 학생 수 설정 및 관찰 평가</label>
+                <div class="flex gap-2 mb-4">
+                    <input type="number" id="studentCount" min="1" max="35" value="1" class="w-1/3 border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border" title="학생 수">
+                    <button id="btnOpenObservationModal" class="w-2/3 bg-white border-2 border-indigo-200 text-indigo-700 font-bold py-2 px-4 rounded-xl shadow-sm hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        관찰 평가 창 열기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 에러 메시지 영역 -->
+            <div id="errorMessage" class="hidden bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200"></div>
+
+            <!-- 생성 버튼 -->
+            <button id="generateBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 mt-auto whitespace-nowrap">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>AI 맞춤형 리포트 생성하기</span>
+            </button>
+        </div>
+
+        <!-- 오른쪽: 결과 출력부 -->
+        <div class="w-full md:w-7/12 bg-white p-6 flex flex-col relative overflow-hidden">
+            <!-- Empty State -->
+            <div id="emptyState" class="h-full flex flex-col items-center justify-center text-center text-gray-400">
+                <svg class="w-20 h-20 mb-4 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <p class="text-lg font-semibold">아직 분석된 데이터가 없습니다.</p>
+                <p class="text-sm mt-2">왼쪽 패널에 기준안과 학생 결과를 입력하고<br>생성 버튼을 눌러주세요.</p>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden h-full flex flex-col items-center justify-center text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                <p class="text-lg font-bold text-gray-800">AI가 데이터를 분석하고 있습니다...</p>
+                <p class="text-sm text-gray-500 mt-2">외솔 6대 핵심역량을 매칭하여<br>맞춤형 리포트를 작성 중입니다. 잠시만 기다려주세요.</p>
+            </div>
+
+            <!-- Result State -->
+            <div id="resultState" class="hidden h-full flex flex-col gap-4 overflow-y-auto pb-4 custom-scrollbar">
+                <div class="flex justify-between items-center border-b pb-2 mb-2 sticky top-0 bg-white z-10">
+                    <h2 class="text-xl font-bold text-gray-800 break-keep">분석 결과 리포트</h2>
+                    <div class="flex gap-2 items-center">
+                        <span id="resultCountBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap"></span>
+                        <button id="btnDownloadResults" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1.5 px-3 rounded shadow transition-colors whitespace-nowrap">
+                            결과 일괄 다운로드 (CSV)
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="resultsContainer" class="flex flex-col gap-6">
+                    <!-- Dynamic Result Cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관찰 평가 모달 (새 창) -->
+    <div id="observationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col h-[80vh] overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 id="modalTitle" class="text-lg font-bold text-gray-800">학생별 관찰 평가 입력 (특이사항)</h2>
+                <button id="btnCloseModalTop" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar bg-gray-50">
+                <div id="studentInputsContainer" class="flex flex-col gap-4">
+                    <!-- Dynamic textareas injected here -->
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 bg-white flex justify-end gap-2">
+                <button id="btnCloseModal" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">완료 (임시저장됨)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 파일 내용 확인 모달 -->
+    <div id="fileViewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col h-[80vh] overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 id="fileViewTitle" class="text-lg font-bold text-gray-800">파일 내용 확인</h2>
+                <button id="btnCloseFileView" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar bg-white">
+                <pre id="fileViewContent" class="text-sm text-gray-700 whitespace-pre-wrap font-sans"></pre>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                <button id="btnConfirmFileView" class="px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded-xl hover:bg-gray-300 transition-colors shadow-sm">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let generatedResultsData = [];
+        let criteriaText = "[내황초등학교 5학년 2학기 평가 기준안 및 문항 데이터 기본 적용됨]\n- 1번: 기본 개념 이해\n- 2번: 원리 및 규칙성 파악\n- 3번: 문제 해결 및 응용\n- 4번: 서술형(과정 설명)\n- 5번: 실생활 적용 문제"; 
+        let resultsText = "학번,이름,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,김외솔,O,X,O,O,O,상,2번 원리 이해 오류\n10102,이울산,O,O,O,O,O,상,없음\n10103,박혁신,X,O,X,X,O,하,기본 개념 및 응용 부족";
+
+        // 테스트용 UI 기본 설정 적용 (파일 미업로드 시에도 바로 테스트 가능하도록)
+        window.addEventListener('DOMContentLoaded', () => {
+            const filenameCriteria = document.getElementById('filename-criteria');
+            filenameCriteria.textContent = "✅ 첨부됨: [테스트용] 5학년_2학기_평가기준안.hwp";
+            filenameCriteria.classList.remove('hidden');
+
+            const filenameResults = document.getElementById('filename-results');
+            filenameResults.textContent = "✅ 첨부됨: [테스트용] 학생평가결과.csv";
+            filenameResults.classList.remove('hidden');
+            
+            // 테스트 데이터를 위해 기본 학생 수 3명으로 세팅
+            document.getElementById('studentCount').value = 3;
+            renderStudentInputs();
+        });
+
+        // DOM Elements
+        const btn = document.getElementById('generateBtn');
+        const errorEl = document.getElementById('errorMessage');
+        const emptyState = document.getElementById('emptyState');
+        const loadingState = document.getElementById('loadingState');
+        const resultState = document.getElementById('resultState');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultCountBadge = document.getElementById('resultCountBadge');
+        
+        const studentCountInput = document.getElementById('studentCount');
+        const studentInputsContainer = document.getElementById('studentInputsContainer');
+        
+        const gradeSelect = document.getElementById('gradeSelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const areaInput = document.getElementById('areaInput');
+
+        // Modal Elements
+        const observationModal = document.getElementById('observationModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const btnOpenObservationModal = document.getElementById('btnOpenObservationModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const btnCloseModalTop = document.getElementById('btnCloseModalTop');
+
+        // File Viewer Modal Elements
+        const fileViewModal = document.getElementById('fileViewModal');
+        const fileViewTitle = document.getElementById('fileViewTitle');
+        const fileViewContent = document.getElementById('fileViewContent');
+        const btnCloseFileView = document.getElementById('btnCloseFileView');
+        const btnConfirmFileView = document.getElementById('btnConfirmFileView');
+
+        // File Viewer Modal Handlers
+        const openFileViewModal = (title, content) => {
+            fileViewTitle.textContent = title;
+            fileViewContent.textContent = content;
+            fileViewModal.classList.remove('hidden');
+            fileViewModal.classList.add('flex');
+        };
+
+        const closeFileViewModal = () => {
+            fileViewModal.classList.add('hidden');
+            fileViewModal.classList.remove('flex');
+        };
+
+        btnCloseFileView.addEventListener('click', closeFileViewModal);
+        btnConfirmFileView.addEventListener('click', closeFileViewModal);
+
+        // Modal Handlers
+        btnOpenObservationModal.addEventListener('click', () => {
+            const grade = gradeSelect.value;
+            const subject = subjectSelect.value;
+            const area = areaInput.value.trim() || '영역 미지정';
+            modalTitle.textContent = `[${grade} ${subject} - ${area}] 관찰 평가 입력`;
+
+            observationModal.classList.remove('hidden');
+            observationModal.classList.add('flex');
+        });
+
+        const closeModal = () => {
+            observationModal.classList.add('hidden');
+            observationModal.classList.remove('flex');
+        };
+
+        btnCloseModal.addEventListener('click', closeModal);
+        btnCloseModalTop.addEventListener('click', closeModal);
+
+        // State management for context switching
+        let contextStates = {};
+        
+        function getCurrentContextKey() {
+            return `${gradeSelect.value}-${subjectSelect.value}-${areaInput.value.trim()}`;
+        }
+        let lastContextKey = getCurrentContextKey();
+
+        // Render student inputs
+        function renderStudentInputs(savedObs = null) {
+            let count = parseInt(studentCountInput.value);
+            if (isNaN(count) || count < 1) count = 1;
+            
+            // 기존 입력된 텍스트값 백업 (학생 수 변경 시 데이터 날아감 방지)
+            let obsToRestore = savedObs;
+            if (!obsToRestore) {
+                obsToRestore = {};
+                const existingTextareas = studentInputsContainer.querySelectorAll('textarea');
+                existingTextareas.forEach(ta => {
+                    obsToRestore[ta.id] = ta.value;
+                });
+            }
+            
+            studentInputsContainer.innerHTML = '';
+            for (let i = 1; i <= count; i++) {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-xl border shadow-sm border-gray-200';
+                div.innerHTML = `
+                    <label class="block text-sm font-bold text-indigo-700 mb-2 flex justify-between">
+                        <span>학생 ${i} 관찰 평가</span>
+                        <span class="text-xs text-gray-400 font-normal">(선택 사항)</span>
+                    </label>
+                    <textarea id="student-obs-${i}" class="w-full border-gray-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 border" rows="3" placeholder="선생님의 관찰 메모나 학생의 특성을 자유롭게 적어주세요."></textarea>
+                `;
+                studentInputsContainer.appendChild(div);
+                
+                // 백업된 값 복원
+                if (obsToRestore[`student-obs-${i}`]) {
+                    document.getElementById(`student-obs-${i}`).value = obsToRestore[`student-obs-${i}`];
+                }
+            }
+        }
+        
+        studentCountInput.addEventListener('change', () => renderStudentInputs(null));
+        renderStudentInputs();
+
+        // 컨텍스트(학년, 과목, 영역) 변경 시 데이터 임시저장 및 불러오기
+        function saveStateToKey(key) {
+            let obs = {};
+            const existingTextareas = studentInputsContainer.querySelectorAll('textarea');
+            existingTextareas.forEach(ta => {
+                obs[ta.id] = ta.value;
+            });
+            contextStates[key] = {
+                resultsText: resultsText,
+                filenameText: document.getElementById('filename-results').textContent,
+                isFileHidden: document.getElementById('filename-results').classList.contains('hidden'),
+                studentCount: studentCountInput.value,
+                observations: obs
+            };
+        }
+
+        function loadStateFromKey(key) {
+            const state = contextStates[key];
+            if (state) {
+                resultsText = state.resultsText || "";
+                const filenameResults = document.getElementById('filename-results');
+                filenameResults.textContent = state.filenameText || "";
+                if (state.isFileHidden) {
+                    filenameResults.classList.add('hidden');
+                } else {
+                    filenameResults.classList.remove('hidden');
+                }
+                studentCountInput.value = state.studentCount || 1;
+                renderStudentInputs(state.observations);
+            } else {
+                // 저장된 상태가 없으면 빈 화면 대신 테스트용 기본 데이터를 다시 세팅
+                resultsText = "학번,이름,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,김외솔,O,X,O,O,O,상,2번 원리 이해 오류\n10102,이울산,O,O,O,O,O,상,없음\n10103,박혁신,X,O,X,X,O,하,기본 개념 및 응용 부족";
+                const filenameResults = document.getElementById('filename-results');
+                filenameResults.textContent = "✅ 첨부됨: [테스트용] 학생평가결과.csv";
+                filenameResults.classList.remove('hidden');
+                const fileResultsInput = document.getElementById('file-results');
+                if(fileResultsInput) fileResultsInput.value = "";
+                studentCountInput.value = 3;
+                renderStudentInputs({}); 
+            }
+        }
+
+        function handleContextChange() {
+            saveStateToKey(lastContextKey); // 이전 상태 저장
+            lastContextKey = getCurrentContextKey(); // 키 업데이트
+            loadStateFromKey(lastContextKey); // 새 상태 불러오기
+        }
+
+        gradeSelect.addEventListener('change', handleContextChange);
+        subjectSelect.addEventListener('change', handleContextChange);
+        areaInput.addEventListener('change', handleContextChange);
+
+        // Setup Dropzones
+        function setupDropzone(dropzoneId, inputId, filenameId, textCallback, typeLabel) {
+            const dropzone = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+            const filenameDisplay = document.getElementById(filenameId);
+
+            dropzone.addEventListener('click', (e) => {
+                if (e.target !== filenameDisplay) {
+                    input.click();
+                }
+            });
+
+            filenameDisplay.addEventListener('click', (e) => {
+                e.stopPropagation(); // 드롭존 클릭 이벤트 실행 방지
+                const content = typeLabel === 'criteria' ? criteriaText : resultsText;
+                if(content) {
+                    const cleanFileName = filenameDisplay.textContent.replace('✅ 첨부됨: ', '');
+                    openFileViewModal(`업로드된 파일 확인 (${cleanFileName})`, content);
+                }
+            });
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-indigo-500', 'bg-indigo-50');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0], filenameDisplay, textCallback);
+                }
+            });
+
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0], filenameDisplay, textCallback);
+                }
+            });
+        }
+
+        function handleFile(file, displayEl, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                callback(e.target.result);
+                displayEl.textContent = `✅ 첨부됨: ${file.name}`;
+                displayEl.classList.remove('hidden');
+            };
+            reader.readAsText(file);
+        }
+
+        setupDropzone('dropzone-criteria', 'file-criteria', 'filename-criteria', (text) => criteriaText = text, 'criteria');
+        setupDropzone('dropzone-results', 'file-results', 'filename-results', (text) => resultsText = text, 'results');
+
+        // CSV Template Download
+        document.getElementById('btnDownloadTemplate').addEventListener('click', () => {
+            const bom = "\uFEFF";
+            const csvContent = 
+                "학번,이름,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n" +
+                "10101,홍길동,O,X,O,O,O,상,2번 개념 오류\n";
+            
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "학생평가결과_입력양식.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Results CSV Download
+        document.getElementById('btnDownloadResults').addEventListener('click', () => {
+            if (!generatedResultsData || generatedResultsData.length === 0) {
+                alert("다운로드할 결과 데이터가 없습니다.");
+                return;
+            }
+            const bom = "\uFEFF";
+            let csvContent = "학생이름,매칭역량,역량매칭이유,교과평어(나이스용),개별피드백,변화정도분석,후속학습방향\n";
+            
+            generatedResultsData.forEach(student => {
+                const row = [
+                    student.student_name,
+                    student.competency,
+                    student.reason,
+                    student.neis_comment,
+                    student.feedback,
+                    student.growth,
+                    student.next_step
+                ].map(field => `"${(field || '').replace(/"/g, '""')}"`).join(',');
+                csvContent += row + "\n";
+            });
+
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "외솔평가_자동생성_결과리포트.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // API Call Helper
+        async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response;
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                    await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+                }
+            }
+        }
+
+        // Generate Button Event
+        btn.addEventListener('click', async () => {
+            const userApiKey = document.getElementById('apiKeyInput').value.trim();
+            if (!userApiKey) {
+                errorEl.innerHTML = "<strong>API 키 누락:</strong> 상단에 Gemini API 키를 입력해주세요. <a href='https://aistudio.google.com/app/apikey' target='_blank' class='underline text-blue-600'>키 발급받기</a>";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            // 안정적인 1.5-flash 모델 적용 및 키 연동
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${userApiKey}`;
+
+            const criteria = criteriaText.trim();
+            const results = resultsText.trim();
+            
+            if (!criteria || !results) {
+                errorEl.innerHTML = "<strong>데이터 누락:</strong> 평가 기준안과 학생 평가 결과 파일을 모두 업로드해주세요.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            errorEl.classList.add('hidden');
+
+            let count = parseInt(studentCountInput.value);
+            if (isNaN(count) || count < 1) count = 1;
+            let observations = [];
+            for(let i = 1; i <= count; i++) {
+                let obsText = document.getElementById(`student-obs-${i}`).value.trim();
+                observations.push({ 
+                    student_name: `학생 ${i}`, 
+                    observation: obsText || "(별도 관찰 내용 없음)" 
+                });
+            }
+
+            emptyState.classList.add('hidden');
+            resultState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            let systemPrompt = `당신은 대한민국 울산 교육청의 '외솔교육' 철학을 깊이 이해하고 있는 탁월한 수석교사입니다.
+입력된 대상 정보(학년, 과목), 평가 기준안, 학생 평가 결과(문항별 결과 포함), 그리고 교사의 학생별 관찰 평가(메모)를 종합적으로 분석하여, 각 학생의 활동에서 가장 돋보인 '외솔 6대 핵심역량' 중 1~2가지를 자동으로 찾아내어 매칭하세요.
+만약 특정 학생의 관찰 메모가 부족하더라도, 제공된 평가 결과(성취수준 등)를 바탕으로 역량을 정확히 추론해야 합니다. 가상 시뮬레이션 문구는 일절 사용하지 마세요.
+
+[외솔교육 6대 핵심역량 의미]
+1. 외솔 세움 역량: 자기관리, 주도성, 나를 스스로 세우는 힘
+2. 외솔 벼림 역량: 지식정보처리, 비판적 사고, 매체 정보 식별력
+3. 외솔 지음 역량: 창의적 사고, 새로운 가치 창출
+4. 외솔 누림 역량: 심미적 감성, 문화 향유
+5. 외솔 이음 역량: 협력적 소통, 다름을 존중하는 포용력
+6. 외솔 나섬 역량: 공동체 역량, 생태 감수성, 행동과 실천
+
+[출력 형식 및 지시사항]
+- 반드시 요청된 JSON 배열 형식(ARRAY)으로 반환하세요.
+- 나이스용 평어(neis_comment)는 객관적이고 명확한 문어체(~함, ~임)로 작성.
+- 학생용 피드백(feedback)은 다정하고 친절한 구어체(~했구나, ~해보자)로 작성.
+- 각 학생의 이름을 student_name 에 그대로 유지하세요.`;
+
+            let userPrompt = `
+[학습 대상 정보]
+- 학년: ${gradeSelect.value}
+- 과목: ${subjectSelect.value}
+- 평가 영역: ${areaInput.value.trim() || '미지정'}
+
+[입력 데이터]
+- 평가 기준안 및 문항지:
+${criteria}
+
+- 학생 단체 평가 결과 데이터 (문항1~5 및 성취수준 등):
+${results}
+
+- 학생별 교사 관찰 데이터 (JSON, 특이사항 입력 내용):
+${JSON.stringify(observations, null, 2)}
+`;
+
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                student_name: { type: "STRING" },
+                                competency: { type: "STRING" },
+                                reason: { type: "STRING" },
+                                neis_comment: { type: "STRING" },
+                                feedback: { type: "STRING" },
+                                growth: { type: "STRING" },
+                                next_step: { type: "STRING" }
+                            },
+                            required: ["student_name", "competency", "reason", "neis_comment", "feedback", "growth", "next_step"]
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates.length > 0) {
+                    const jsonText = data.candidates[0].content.parts[0].text;
+                    const parsedData = JSON.parse(jsonText);
+                    
+                    generatedResultsData = parsedData;
+
+                    resultsContainer.innerHTML = '';
+                    parsedData.forEach((result, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-4 animate-[fadeIn_0.5s_ease-out]';
+                        card.style.animationDelay = `${index * 0.1}s`;
+                        
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start border-b pb-3 border-gray-100">
+                                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm">
+                                        ${result.student_name.slice(-2)}
+                                    </div>
+                                    ${result.student_name}
+                                </h3>
+                            </div>
+
+                            <div class="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100/50">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded text-xs font-bold shadow-sm">✨ AI 자동 매칭 역량</span>
+                                    <span class="font-bold text-indigo-900">${result.competency}</span>
+                                </div>
+                                <p class="text-sm text-indigo-800">${result.reason}</p>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-500 uppercase mb-1">교과 세부능력 및 특기사항 (나이스용)</h4>
+                                <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 border border-gray-100 leading-relaxed relative group">
+                                    ${result.neis_comment}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-500 uppercase mb-1">학생 맞춤형 개별 피드백</h4>
+                                <div class="bg-blue-50/50 rounded-xl p-4 text-sm text-blue-800 border border-blue-100 leading-relaxed">
+                                    ${result.feedback}
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-1">변화 정도 분석</h4>
+                                    <div class="bg-gray-50 rounded-xl p-3 text-sm text-gray-600 border border-gray-100 h-full">
+                                        ${result.growth}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-1">후속 학습 방향</h4>
+                                    <div class="bg-gray-50 rounded-xl p-3 text-sm text-gray-600 border border-gray-100 h-full">
+                                        ${result.next_step}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        resultsContainer.appendChild(card);
+                    });
+
+                    resultCountBadge.textContent = `${parsedData.length}명 완료`;
+                    loadingState.classList.add('hidden');
+                    resultState.classList.remove('hidden');
+                } else {
+                    throw new Error("결과를 생성하지 못했습니다.");
+                }
+            } catch (error) {
+                console.error(error);
+                errorEl.innerHTML = `<strong>오류 발생:</strong> 분석 중 문제가 발생했습니다. API 키나 네트워크를 확인해주세요. (${error.message})`;
+                errorEl.classList.remove('hidden');
+                loadingState.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>
         
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
