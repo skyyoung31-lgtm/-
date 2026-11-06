@@ -7,7 +7,1049 @@
     <script src="https://cdn.tailwindcss.com"></script><!DOCTYPE html>
 <html lang="ko">
 <head>
+    <meta charset="UTF-8"><!DOCTYPE html>
+<html lang="ko">
+<head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외솔 AI 평가 튜터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; word-break: keep-all; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen font-sans">
+    <!-- UI Layout -->
+    <div id="mainLayoutContainer" class="flex flex-col md:flex-row h-full max-w-7xl mx-auto bg-white shadow-xl overflow-hidden transition-all duration-300">
+        
+        <!-- 왼쪽: 입력부 -->
+        <div id="leftInputPanel" class="w-full md:w-5/12 bg-gray-50 p-6 border-r border-gray-100 flex flex-col gap-6 overflow-y-auto custom-scrollbar transition-all duration-300">
+            <div>
+                <h1 class="text-3xl font-extrabold flex items-center gap-2 tracking-tight">
+                    <svg class="w-8 h-8 text-indigo-600 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 whitespace-nowrap">외솔 AI 평가 튜터</span>
+                </h1>
+                <p class="text-sm text-gray-500 mt-2 break-keep">평가 기준과 결과를 입력하면 맞춤형 평어와 개별 피드백을 자동 생성합니다.</p>
+            </div>
+
+            <!-- API 키 입력 영역 -->
+            <div class="bg-white border-2 border-indigo-100 rounded-xl p-4 shadow-sm">
+                <label class="block text-sm font-bold text-indigo-900 mb-2">🔑 Google Gemini API 키</label>
+                <input type="password" id="apiKeyInput" placeholder="API 키를 입력하세요" class="w-full border-gray-300 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm border shadow-inner mb-2 text-gray-700">
+                <p class="text-xs text-gray-500 break-keep">안전한 배포를 위해 본인의 API 키를 입력해야 작동합니다. 입력된 키는 외부로 유출되지 않으며, 브라우저에만 임시 저장됩니다.</p>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="inline-block mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                    👉 1분 만에 무료 API 키 발급받기
+                </a>
+            </div>
+
+            <!-- 튜터 사용 방법 가이드 -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800">
+                <h3 class="font-bold mb-2 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    튜터 사용 방법
+                </h3>
+                <ol start="0" class="list-decimal pl-5 space-y-1 mb-3">
+                    <li class="font-bold text-indigo-900">API 키 준비 (필수): <span class="font-normal">웹사이트 외부 공유 시 보안 위험(개인 키 도용) 및 트래픽 요금 폭탄을 방지하기 위해 각자의 무료 API 키 입력이 반드시 필요합니다.</span></li>
+                    <li><strong>과목 설정:</strong> 학년, 과목을 선택하고 영역을 적으세요. (영역별로 데이터 자동 저장)</li>
+                    <li><strong>평가 기준안:</strong> 파일(한글, 워드 등)을 한 번 업로드하세요.</li>
+                    <li><strong>학생 평가 결과:</strong> <button id="btnDownloadTemplate" class="underline font-bold text-indigo-600 hover:text-indigo-900 whitespace-nowrap">CSV 양식 다운로드</button>를 클릭하여 작성 후 업로드하세요. (개인정보 보호를 위해 <strong>이름 대신 학번</strong>만 사용, 양식 내 <strong>단원/성취기준</strong> 입력 필수)</li>
+                    <li><strong>관찰 평가:</strong> 아래 <strong>관찰 평가 창</strong>을 열어 직접 작성합니다. (선택 사항)</li>
+                </ol>
+                <div class="mt-3 p-2 bg-indigo-100 rounded-lg text-center font-bold text-indigo-900 break-keep">
+                    ※ 내황초 평가 기준안 및 가상 학생 데이터가 전 과목 테스트용으로 기본 적용되어 있습니다.
+                </div>
+            </div>
+
+            <!-- 학년, 과목, 영역 선택 -->
+            <div class="flex gap-4">
+                <div class="w-1/3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">🎓 학년</label>
+                    <select id="gradeSelect" class="w-full border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border bg-white">
+                        <option value="1학년">1학년</option>
+                        <option value="2학년">2학년</option>
+                        <option value="3학년">3학년</option>
+                        <option value="4학년">4학년</option>
+                        <option value="5학년" selected>5학년</option>
+                        <option value="6학년">6학년</option>
+                    </select>
+                </div>
+                <div class="w-1/3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">📚 과목</label>
+                    <select id="subjectSelect" class="w-full border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border bg-white">
+                        <option value="국어">국어</option>
+                        <option value="수학" selected>수학</option>
+                        <option value="사회">사회</option>
+                        <option value="과학">과학</option>
+                        <option value="영어">영어</option>
+                        <option value="도덕">도덕</option>
+                        <option value="음악">음악</option>
+                        <option value="미술">미술</option>
+                        <option value="체육">체육</option>
+                        <option value="실과">실과</option>
+                        <option value="통합교과(바·슬·즐)">통합교과(바·슬·즐)</option>
+                    </select>
+                </div>
+                <div class="w-1/3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">🎯 영역</label>
+                    <input type="text" id="areaInput" value="도형" placeholder="예: 도형, 읽기..." class="w-full border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border bg-white">
+                </div>
+            </div>
+
+            <!-- 평가 기준안 입력 -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">📝 평가 기준안 및 문항지 (모든 파일 지원)</label>
+                <div id="dropzone-criteria" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                    <input type="file" id="file-criteria" class="hidden" />
+                    <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p class="text-sm text-gray-500">클릭하거나 파일을 드래그 앤 드롭하세요.</p>
+                    <p id="filename-criteria" class="text-sm font-semibold text-indigo-600 mt-2 hidden hover:underline hover:text-indigo-800 transition-colors break-all" title="클릭하여 파일 내용 확인"></p>
+                </div>
+            </div>
+
+            <!-- 학생 평가 결과 입력 -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">📊 학생 평가 결과 (모든 파일 지원)</label>
+                <div id="dropzone-results" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                    <input type="file" id="file-results" class="hidden" />
+                    <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <p class="text-sm text-gray-500">클릭하거나 파일을 드래그 앤 드롭하세요.</p>
+                    <p id="filename-results" class="text-sm font-semibold text-indigo-600 mt-2 hidden hover:underline hover:text-indigo-800 transition-colors break-all" title="클릭하여 파일 내용 확인"></p>
+                </div>
+            </div>
+
+            <!-- 학생 수 설정 및 관찰 평가 입력 -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">👥 학생 수 설정 및 관찰 평가</label>
+                <div class="flex gap-2 mb-4">
+                    <input type="number" id="studentCount" min="1" max="35" value="1" class="w-1/3 border-gray-300 rounded-xl p-3 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm border" title="학생 수">
+                    <button id="btnOpenObservationModal" class="w-2/3 bg-white border-2 border-indigo-200 text-indigo-700 font-bold py-2 px-4 rounded-xl shadow-sm hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        관찰 평가 창 열기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 에러 메시지 영역 -->
+            <div id="errorMessage" class="hidden bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200 break-keep"></div>
+
+            <!-- 생성 버튼 -->
+            <button id="generateBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 mt-auto whitespace-nowrap">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>AI 맞춤형 리포트 생성하기</span>
+            </button>
+        </div>
+
+        <!-- 오른쪽: 결과 출력부 -->
+        <div id="rightResultPanel" class="w-full md:w-7/12 bg-white p-6 flex flex-col relative overflow-hidden transition-all duration-300">
+            <!-- 접힌 상태에서 보여질 초간결 '리포트 열기' 버튼 바 -->
+            <div id="collapsedButtonBar" class="hidden h-full flex-col items-center justify-start pt-6">
+                <button id="btnExpandResults" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-2 rounded-xl shadow-md transition-all flex flex-col items-center gap-2 group cursor-pointer" title="클릭하여 분석 리포트 화면을 다시 펼칩니다">
+                    <svg class="w-5 h-5 text-indigo-200 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="text-xs tracking-widest writing-vertical font-semibold [writing-mode:vertical-lr]">리포트 열기</span>
+                </button>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="h-full flex flex-col items-center justify-center text-center text-gray-400">
+                <svg class="w-20 h-20 mb-4 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <p class="text-lg font-semibold break-keep">아직 분석된 데이터가 없습니다.</p>
+                <p class="text-sm mt-2 break-keep">왼쪽 패널에 기준안과 학생 결과를 입력하고<br>생성 버튼을 눌러주세요.</p>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden h-full flex flex-col items-center justify-center text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                <p class="text-lg font-bold text-gray-800 break-keep">AI가 데이터를 심층 분석하고 있습니다...</p>
+                <p class="text-sm text-gray-500 mt-2 break-keep">입력하신 데이터를 외솔 6대 핵심역량과 매칭하여<br>정확하고 꼼꼼한 맞춤형 리포트를 작성 중입니다. 잠시만 기다려주세요.</p>
+            </div>
+
+            <!-- Result State -->
+            <div id="resultState" class="hidden h-full flex flex-col gap-4 overflow-y-auto pb-4 custom-scrollbar">
+                <div class="flex justify-between items-center border-b pb-2 mb-2 sticky top-0 bg-white z-10">
+                    <div class="flex items-center gap-2">
+                        <h2 id="resultHeadingText" class="text-xl font-bold text-gray-800 break-keep">분석 결과 리포트</h2>
+                        <span id="resultCountBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap"></span>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <button id="btnToggleResults" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-indigo-200 shadow-sm transition-colors flex items-center gap-1 whitespace-nowrap" title="리포트를 접고 입력창을 넓게 봅니다">
+                            <span>리포트 접기</span>
+                            <svg class="w-3.5 h-3.5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                        <button id="btnDownloadResults" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                            결과 다운로드 (CSV)
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="resultsContainer" class="flex flex-col gap-6 transition-all duration-300">
+                    <!-- Dynamic Result Cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관찰 평가 모달 (새 창) -->
+    <div id="observationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col h-[80vh] overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 id="modalTitle" class="text-lg font-bold text-gray-800">학생별 관찰 평가 입력 (특이사항)</h2>
+                <button id="btnCloseModalTop" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar bg-gray-50">
+                <div id="studentInputsContainer" class="flex flex-col gap-4">
+                    <!-- Dynamic textareas injected here -->
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 bg-white flex justify-end gap-2">
+                <button id="btnCloseModal" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap">완료 (임시저장됨)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 파일 내용 확인 모달 -->
+    <div id="fileViewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col h-[80vh] overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 id="fileViewTitle" class="text-lg font-bold text-gray-800 break-keep">파일 내용 확인</h2>
+                <button id="btnCloseFileView" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar bg-white">
+                <pre id="fileViewContent" class="text-sm text-gray-700 whitespace-pre-wrap font-sans break-all"></pre>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                <button id="btnConfirmFileView" class="px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded-xl hover:bg-gray-300 transition-colors shadow-sm whitespace-nowrap">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let generatedResultsData = [];
+        let criteriaText = ""; 
+        let resultsText = "";
+
+        // ... existing subjectPresets definition ...
+        const subjectPresets = {
+            "국어": {
+                area: "듣기·말하기",
+                criteria: `[내황초등학교 5학년 2학기 국어 평가 기준안]
+■ 단원: 1. 마음을 나누며 대화해요
+■ 성취기준: [6국01-02] 의견을 조정하며 토의한다. (공감하며 대화하기)
+
+[문항별 평가 요소]
+- 1번(이해): 공감하며 대화하는 까닭 알기
+- 2번(적용): 처지가 다를 때 상대방을 배려하며 말하는 방법 찾기
+- 3번(분석): 대화 상황에서 잘못된 표현 찾고 바르게 고치기
+- 4번(서술): 자신의 경험을 바탕으로 공감하는 말 작성하기
+- 5번(실천): 친구와의 갈등 상황을 가정하여 해결 대화문 완성하기
+
+[성취 수준별 루브릭]
+▶ 상: 공감하며 대화하는 방법을 정확히 이해하고, 상대의 처지를 배려하는 언어를 적절하게 사용하여 대화문을 완성할 수 있음.
+▶ 중: 공감하는 대화의 필요성은 아나, 갈등 상황에서 이를 해결하는 구체적인 대화 방법을 서술하는 데 일부 어려움이 있음.
+▶ 하: 상대방을 배려하며 말하는 방법에 대한 이해가 부족하여 대화 상황에 맞게 표현하는 데 어려움이 있음.`,
+                results: `단원명,1. 마음을 나누며 대화해요
+성취기준,[6국01-02] 의견을 조정하며 토의한다.
+학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형
+10101,O,O,O,O,O,상,없음
+10102,O,O,O,X,O,상,4번 경험 기반 서술 부족
+10103,O,X,O,O,X,중,2번 배려 표현 및 5번 갈등 해결 대화 오류
+10104,X,X,X,X,X,하,공감 대화 개념 전반적 이해 부족
+10105,O,O,O,O,X,상,5번 상황에 맞지 않는 어휘 선택
+10106,O,O,X,X,X,중,상황 분석 및 서술형 응답 능력 부족
+10107,O,O,X,O,X,중,3번 잘못된 표현 찾기 오류
+10108,X,O,O,O,O,상,1번 단순 개념 혼동
+10109,X,X,O,X,X,하,상대방 처지 이해 및 표현 어려움
+10110,O,X,X,O,X,중,실천적 대화문 작성 능력 보완 필요`
+            },
+            "수학": {
+                area: "도형",
+                criteria: `[내황초등학교 5학년 2학기 수학 평가 기준안]
+■ 단원: 3. 합동과 대칭
+■ 성취기준: [6수02-03] 선대칭도형과 점대칭도형을 이해하고 그릴 수 있다.
+
+[문항별 평가 요소]
+- 1번(지식/이해): 선대칭도형과 점대칭도형의 기본 뜻 알기
+- 2번(원리/규칙성): 대칭축과 대칭의 중심을 정확히 찾고 표시하기
+- 3번(문제해결/응용): 여러 도형 중 선대칭도형과 점대칭도형 분류하기
+- 4번(서술형/과정): 점대칭도형을 그리는 방법 서술 및 도형 완성하기
+- 5번(실생활적용): 실생활에서 대칭인 물건을 찾아 대칭의 특징 설명하기
+
+[성취 수준별 루브릭]
+▶ 상: 선대칭도형과 점대칭도형의 성질을 완벽히 이해하고 대칭축과 대칭의 중심을 찾을 수 있음. 과정을 논리적으로 서술함.
+▶ 중: 기본 개념과 원리는 이해하나, 복잡한 점대칭도형을 그리거나 과정을 서술하는 데 일부 오류나 어려움이 있음.
+▶ 하: 선대칭도형과 점대칭도형의 뜻에 대한 이해가 부족하여 대칭축을 찾거나 도형을 분류하는 데 어려움이 많음.`,
+                results: `단원명,3. 합동과 대칭
+성취기준,[6수02-03] 선대칭도형과 점대칭도형을 이해하고 그릴 수 있다.
+학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형
+10101,O,O,O,O,O,상,없음
+10102,O,O,O,X,O,상,4번 서술형 과정 설명 미흡
+10103,O,X,O,O,X,중,2번 규칙성 및 5번 실생활 적용 오류
+10104,X,X,X,X,X,하,전반적인 기본 개념 및 원리 이해 부족
+10105,O,O,X,O,O,상,3번 응용 문제 오류
+10106,O,X,X,X,O,중,복합 문제 해결 능력 부족
+10107,O,O,O,X,X,중,후반부 서술형 및 응용 연습 필요
+10108,X,O,O,O,O,상,1번 단순 개념 혼동
+10109,X,X,O,X,X,하,기본 원리 파악 및 과정 서술 어려움
+10110,O,O,X,X,X,중,응용 및 심화 문제 해결력 보완 필요`
+            },
+            "사회": {
+                area: "역사",
+                criteria: `[내황초등학교 5학년 2학기 사회 평가 기준안]
+■ 단원: 1. 옛 사람들의 삶과 문화
+■ 성취기준: [6사03-01] 고조선의 건국과 여러 나라의 발전 과정을 안다.
+
+[문항별 평가 요소]
+- 1번(지식): 단군왕검과 고조선 건국 이야기의 역사적 의미 알기
+- 2번(이해): 고구려, 백제, 신라의 성장 배경과 특징 비교하기
+- 3번(분석): 삼국 통일 과정의 역사적 의의와 한계점 파악하기
+- 4번(서술): 발해가 고구려를 계승한 증거 2가지 서술하기
+- 5번(적용): 역사적 인물(예: 광개토대왕, 장보고 등)의 업적을 현재의 관점에서 평가하기
+
+[성취 수준별 루브릭]
+▶ 상: 고조선부터 발해까지의 역사적 흐름을 정확히 이해하고, 각 나라의 특징 및 역사적 인물의 업적을 논리적으로 평가할 수 있음.
+▶ 중: 삼국의 발전 과정은 이해하나, 삼국 통일의 한계점이나 발해의 고구려 계승 증거를 구체적으로 서술하는 데 어려움이 있음.
+▶ 하: 나라별 특징을 혼동하거나 역사적 흐름에 대한 전반적인 이해가 부족함.`,
+                results: `단원명,1. 옛 사람들의 삶과 문화
+성취기준,[6사03-01] 고조선의 건국과 여러 나라의 발전 과정을 안다.
+학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형
+10101,O,O,O,O,O,상,없음
+10102,O,O,O,X,O,상,4번 발해 계승 증거 1개만 제시
+10103,O,X,O,O,X,중,2번 삼국 특징 혼동 및 인물 평가 논리 부족
+10104,X,X,X,X,X,하,전반적인 시대 흐름 이해 부족
+10105,O,O,X,O,O,상,3번 삼국 통일 의의 파악 미흡
+10106,O,X,X,X,O,중,국가별 비교 분석 및 서술 능력 부족
+10107,O,O,O,X,X,중,발해 관련 지식 및 인물 평가 응용력 부족
+10108,X,O,O,O,O,상,1번 고조선 역사적 의미 혼동
+10109,X,X,O,X,X,하,기본적인 국가 이름 및 순서 인지 어려움
+10110,O,O,X,X,X,중,분석 및 역사적 평가 등 고차원 사고 필요`
+            },
+            "과학": {
+                area: "생명",
+                criteria: `[내황초등학교 5학년 2학기 과학 평가 기준안]
+■ 단원: 2. 생물과 환경
+■ 성취기준: [6과04-01] 생태계가 생물 요소와 비생물 요소로 이루어져 있음을 안다.
+
+[문항별 평가 요소]
+- 1번(이해): 생태계의 구성 요소(생물, 비생물) 구분하기
+- 2번(분석): 생산자, 소비자, 분해자의 역할과 상호작용 이해하기
+- 3번(적용): 먹이 사슬과 먹이 그물의 차이점 설명하기
+- 4번(서술): 환경 오염이 생태계에 미치는 영향을 구체적인 사례로 서술하기
+- 5번(실천): 생태계 보전을 위해 우리가 할 수 있는 일 제안하기
+
+[성취 수준별 루브릭]
+▶ 상: 생태계의 구성 요소와 역할을 정확히 분류하고 상호작용을 논리적으로 설명하며, 환경 오염 사례와 보전 방안을 타당하게 제시함.
+▶ 중: 구성 요소는 분류할 수 있으나, 먹이 그물의 복잡한 관계를 설명하거나 환경 보전 방안을 구체적으로 서술하는 데 일부 부족함이 있음.
+▶ 하: 생산자, 소비자 등 기본 개념의 이해가 부족하고 생태계의 상호작용을 설명하지 못함.`,
+                results: `단원명,2. 생물과 환경
+성취기준,[6과04-01] 생태계가 생물 요소와 비생물 요소로 이루어져 있음을 안다.
+학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형
+10101,O,O,O,O,O,상,없음
+10102,O,O,X,O,O,상,3번 먹이 사슬/그물 차이 설명 미흡
+10103,O,O,O,X,X,중,4번 환경 오염 사례 추상적, 5번 실천 방안 구체성 결여
+10104,X,X,X,X,X,하,생태계 기본 개념 파악 안됨
+10105,O,X,O,O,O,상,2번 분해자 역할 혼동
+10106,O,X,X,X,O,중,생태계 상호작용 원리 이해 부족
+10107,O,O,O,X,X,중,서술형 문항 작성 능력 부족
+10108,X,O,O,O,O,상,1번 비생물 요소 식별 오류
+10109,X,X,X,O,X,하,생태계 구성원 분류 어려움
+10110,O,O,X,X,X,중,환경 문제 적용 및 심화 이해 필요`
+            },
+            "영어": { 
+                area: "듣기·말하기", 
+                criteria: `[내황초등학교 5학년 영어 평가 기준안]
+■ 단원: 7. She is tall.
+■ 성취기준: 외모를 묘사하는 쉬운 표현을 듣고 이해한다.
+
+[문항별 평가 요소]
+- 1번(듣기): 외모 묘사 기본 어휘(tall, short, curly 등) 식별하기
+- 2번(이해): 문장 단위의 외모 묘사를 듣고 알맞은 대상 찾기
+- 3번(분석): 여러 인물 중 세부 묘사와 일치하는 인물 구별하기
+- 4번(적용): 주어진 상황에 맞는 외모 묘사 표현 선택하기
+- 5번(쓰기): 그림을 보고 알맞은 외모 묘사 문장 완성하기
+
+[성취 수준별 루브릭]
+▶ 상: 외모 묘사 어휘를 완벽히 듣고 이해하며, 상황에 맞는 문장으로 정확히 표현함.
+▶ 중: 일부 어휘는 이해하나 문장 단위의 의미 파악이나 세부 묘사에서 잔실수가 있음.
+▶ 하: 외모 묘사 관련 기본 어휘의 이해가 전반적으로 부족함.`, 
+                results: "단원명,7. She is tall.\n성취기준,외모를 묘사하는 쉬운 표현을 듣고 이해한다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,O,X,상,긴 머리/짧은 머리 묘사 혼동\n10103,O,X,O,O,X,중,세부 묘사 듣기 실수\n10104,X,X,X,X,X,하,기본 파닉스 및 어휘 인지 미흡\n10105,O,O,O,X,O,상,단어 스펠링 쓰기 실수\n10106,O,X,X,X,O,중,문장 구조 파악 어려움\n10107,O,O,O,X,X,중,서술적 표현 이해 부족\n10108,X,O,O,O,O,상,1번 단순 청취 오류\n10109,X,X,O,X,X,하,전반적 듣기 능력 보완 필요\n10110,O,X,X,O,X,중,새로운 어휘 적응력 필요" 
+            },
+            "도덕": { 
+                area: "자연·초월", 
+                criteria: `[내황초등학교 5학년 도덕 평가 기준안]
+■ 단원: 4. 참된 아름다움
+■ 성취기준: 내면의 아름다움의 중요성을 알고 가꾼다.
+
+[문항별 평가 요소]
+- 1번(지식): 내면의 아름다움의 의미와 가치 알기
+- 2번(이해): 겉모습과 내면의 아름다움의 차이점 비교하기
+- 3번(판단): 도덕적 갈등 상황에서 바른 행동(내면의 아름다움) 선택하기
+- 4번(적용): 실생활에서 내면을 가꾸는 구체적인 방법 찾기
+- 5번(실천): 자신의 삶에 적용할 도덕적 다짐 서술하기
+
+[성취 수준별 루브릭]
+▶ 상: 내면의 아름다움의 가치를 정확히 알고 일상생활 속 구체적인 실천 의지가 높음.
+▶ 중: 개념은 이해하나 도덕적 판단이나 구체적 실천 방안 제시에 다소 어려움을 보임.
+▶ 하: 겉모습과 내면의 차이에 대한 도덕적 가치 인식이 전반적으로 부족함.`, 
+                results: "단원명,4. 참된 아름다움\n성취기준,내면의 아름다움의 중요성을 알고 가꾼다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,X,O,상,4번 실천 방안 구체성 부족\n10103,O,X,O,O,X,중,사례 적용 및 판단 미흡\n10104,X,X,X,X,X,하,도덕적 개념 이해 부족\n10105,O,O,X,O,O,상,3번 내적 갈등 상황 판단 오류\n10106,O,X,X,X,O,중,도덕적 판단 및 서술 능력 부족\n10107,O,O,O,X,X,중,실생활 연계성 부족\n10108,X,O,O,O,O,상,1번 개념 용어 혼동\n10109,X,X,O,X,X,하,도덕적 실천 의지 표현 어려움\n10110,O,X,X,O,X,중,사례 중심의 심층 이해 필요" 
+            },
+            "음악": { 
+                area: "표현", 
+                criteria: `[내황초등학교 5학년 음악 평가 기준안]
+■ 단원: 2. 다양한 음악 여행
+■ 성취기준: 악곡의 특징을 이해하며 노래 부르거나 연주한다.
+
+[문항별 평가 요소]
+- 1번(이해): 악곡의 기본 박자와 리듬 형태 파악하기
+- 2번(표현): 악상 기호와 가사의 의미에 맞게 호흡 조절하기
+- 3번(기능): 정확한 음정과 박자로 노래 부르거나 악기 연주하기
+- 4번(적용): 악곡의 전체적인 분위기를 살려 감정 표현하기
+- 5번(태도): 바른 자세와 태도로 끝까지 책임감 있게 연주 마치기
+
+[성취 수준별 루브릭]
+▶ 상: 박자와 리듬을 정확히 지키며 곡의 특징과 감정을 살려 표현력 있게 연주함.
+▶ 중: 리듬이나 음정에 미세한 오류가 있으나 태도가 바르고 끝까지 연주를 마침.
+▶ 하: 박자와 음정에 대한 감각이 부족하여 악곡을 끝까지 연주하는 데 어려움이 있음.`, 
+                results: "단원명,2. 다양한 음악 여행\n성취기준,악곡의 특징을 이해하며 노래 부르거나 연주한다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,X,O,상,4번 호흡 조절 다소 미흡\n10103,O,X,O,O,X,중,리듬 변화 구간에서 실수\n10104,X,X,X,X,X,하,기초 음정과 박자감 부족\n10105,O,O,X,O,O,상,3번 고음 처리 불안정\n10106,O,X,X,X,O,중,악보 읽기 및 표현력 부족\n10107,O,O,O,X,X,중,끝음 처리 및 감정 표현 부족\n10108,X,O,O,O,O,상,시작 박자 놓침\n10109,X,X,O,X,X,하,연주에 대한 자신감 결여\n10110,O,X,X,O,X,중,꾸준한 리듬 연습 필요" 
+            },
+            "미술": { 
+                area: "표현", 
+                criteria: `[내황초등학교 5학년 미술 평가 기준안]
+■ 단원: 3. 색의 세계
+■ 성취기준: 대상의 특징을 다양한 색의 조화로 표현한다.
+
+[문항별 평가 요소]
+- 1번(지식): 한색과 난색의 특징 및 차이점 알기
+- 2번(이해): 명도/채도 등 색의 대비와 조화 원리 파악하기
+- 3번(기능): 채색 도구(수채화 등)를 올바르게 사용하여 물 조절하기
+- 4번(표현): 주제에 맞게 창의적이고 다양한 배색 활용하기
+- 5번(태도): 작품의 완성도를 높이고 도구 뒷정리를 바르게 하기
+
+[성취 수준별 루브릭]
+▶ 상: 색의 대비와 조화를 잘 이해하고 도구를 능숙하게 다루어 주제를 창의적으로 표현함.
+▶ 중: 색의 혼합은 가능하나 주제에 맞는 창의적 배색 및 세부 묘사 능력이 다소 부족함.
+▶ 하: 기본 색채 지식이 부족하고 단조롭게 채색하며 도구 사용에 미숙함.`, 
+                results: "단원명,3. 색의 세계\n성취기준,대상의 특징을 다양한 색의 조화로 표현한다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,X,O,상,4번 대비 효과 표현 약간 미흡\n10103,O,X,O,O,X,중,배색의 조화로움 부족\n10104,X,X,X,X,X,하,색상 및 채도 개념 이해 부족\n10105,O,O,X,O,O,상,3번 수채화 물조절 실수\n10106,O,X,X,X,O,중,주제와 색채의 연관성 부족\n10107,O,O,O,X,X,중,마무리 및 완성도 부족\n10108,X,O,O,O,O,상,1번 기본 색상환 배치 실수\n10109,X,X,O,X,X,하,표현에 대한 흥미 및 기법 부족\n10110,O,X,X,O,X,중,다양한 배색 시도 필요" 
+            },
+            "체육": { 
+                area: "도전", 
+                criteria: `[내황초등학교 5학년 체육 평가 기준안]
+■ 단원: 2. 표적/투기 도전
+■ 성취기준: 표적 도전의 특성을 이해하고 정확성을 높이는 자세를 익힌다.
+
+[문항별 평가 요소]
+- 1번(지식): 표적 도전 활동의 특성과 안전 수칙 알기
+- 2번(기능): 목표물을 정확히 맞추기 위한 올바른 투척 자세 익히기
+- 3번(적용): 목표물과의 거리와 방향을 고려하여 힘 조절하기
+- 4번(실전): 집중력을 유지하며 표적 맞추기 실전 활동에 끝까지 참여하기
+- 5번(태도): 경기 규칙을 준수하고 상대방을 배려하는 스포츠 정신 발휘하기
+
+[성취 수준별 루브릭]
+▶ 상: 올바른 자세와 힘 조절로 표적을 정확히 맞추며, 스포츠 정신을 훌륭히 발휘함.
+▶ 중: 기본 자세는 숙지했으나 거리 조절이나 실전에서의 집중력이 다소 흐트러짐.
+▶ 하: 규칙과 기본 자세에 대한 이해가 부족하여 활동 참여에 지속적인 지도가 필요함.`, 
+                results: "단원명,2. 표적/투기 도전\n성취기준,표적 도전의 특성을 이해하고 정확성을 높이는 자세를 익힌다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,X,O,상,4번 던지기 팔 각도 불안정\n10103,O,X,O,O,X,중,목표물 조준 정확도 부족\n10104,X,X,X,X,X,하,안전수칙 및 기본 룰 인지 부족\n10105,O,O,X,O,O,상,3번 하체 중심 이동 실수\n10106,O,X,X,X,O,중,반복 연습에 대한 끈기 부족\n10107,O,O,O,X,X,중,긴장으로 인한 실전 정확성 하락\n10108,X,O,O,O,O,상,시작 전 준비자세 실수\n10109,X,X,O,X,X,하,기초 체력 및 신체 조작 능력 부족\n10110,O,X,X,O,X,중,자세 교정에 대한 이해도 향상 필요" 
+            },
+            "실과": { 
+                area: "기술활용", 
+                criteria: `[내황초등학교 5학년 실과 평가 기준안]
+■ 단원: 2. 동식물과 우리 생활
+■ 성취기준: 생활 속 동식물의 이용과 가치를 안다.
+
+[문항별 평가 요소]
+- 1번(지식): 생활 속에서 이용되는 다양한 동식물 자원의 종류 알기
+- 2번(이해): 의식주 등 동식물이 우리 생활에 주는 구체적인 이로움 파악하기
+- 3번(분석): 동식물의 산업적 가치와 생태적 가치 구분하기
+- 4번(적용): 미래 생활에서 활용될 수 있는 동식물 자원 사례 조사하기
+- 5번(태도): 농업과 생명의 소중함을 알고 환경을 보전하려는 태도 기르기
+
+[성취 수준별 루브릭]
+▶ 상: 동식물 자원의 가치(산업적, 생태적)를 명확히 구분하고 생명 존중 태도를 잘 서술함.
+▶ 중: 대표적 활용 사례는 아나, 가치를 분류하거나 미래 사례를 적용하는 데 일부 어려움이 있음.
+▶ 하: 우리 생활 속 동식물 자원의 중요성과 가치에 대한 기본 인식이 부족함.`, 
+                results: "단원명,2. 동식물과 우리 생활\n성취기준,생활 속 동식물의 이용과 가치를 안다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,X,O,상,4번 생태적 가치 서술 다소 미흡\n10103,O,X,O,O,X,중,2번 식물 활용과 5번 동물 자원 혼동\n10104,X,X,X,X,X,하,전반적 농업 및 생명 자원 이해 부족\n10105,O,O,X,O,O,상,3번 활용 사례 분류 실수\n10106,O,X,X,X,O,중,가치 인식 및 서술 능력 부족\n10107,O,O,O,X,X,중,다양한 사례 확장 적용 부족\n10108,X,O,O,O,O,상,1번 기본 용어 뜻 혼동\n10109,X,X,O,X,X,하,실생활 연계 사고 어려움\n10110,O,X,X,O,X,중,미래 식량 자원 개념 보완 필요" 
+            },
+            "통합교과(바·슬·즐)": { 
+                area: "가을", 
+                criteria: `[내황초등학교 2학년 2학기 통합교과 평가 기준안]
+■ 단원: 1. 가을아 안녕
+■ 성취기준: 가을의 특징을 알고 가을맞이 활동에 적극적으로 참여한다.
+
+[문항별 평가 요소]
+- 1번(탐구/슬기로운): 가을철 자연(나뭇잎, 열매 등)과 날씨의 변화 관찰하기
+- 2번(이해/슬기로운): 가을에 주로 볼 수 있는 동식물 특징 알기
+- 3번(표현/즐거운): 가을의 느낌을 살려 노래 부르거나 작품 만들기
+- 4번(참여/바른): 가을맞이 놀이 활동에 즐겁고 적극적으로 참여하기
+- 5번(태도/바른): 친구들과 협동하며 주변을 깨끗하게 정리하기
+
+[성취 수준별 루브릭]
+▶ 상: 가을철 자연의 변화를 뚜렷하게 관찰하고, 작품으로 멋지게 표현하며 적극적으로 참여함.
+▶ 중: 가을의 특징은 알지만 탐구 활동이나 만들기, 무리 활동 참여에 소극적인 면이 보임.
+▶ 하: 계절의 변화를 인지하는 데 어려움이 있고 전반적인 활동 참여 유도가 필요함.`, 
+                results: "단원명,1. 가을아 안녕\n성취기준,가을의 특징을 알고 가을맞이 활동에 적극적으로 참여한다.\n학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n10101,O,O,O,O,O,상,없음\n10102,O,O,O,X,O,상,만들기 활동 시 집중력 다소 하락\n10103,O,X,O,O,X,중,가을 열매 이름 혼동\n10104,X,X,X,X,X,하,관찰 활동 무관심 및 참여 부족\n10105,O,O,X,O,O,상,가을 잎 그리기 세부 표현 미흡\n10106,O,X,X,X,O,중,협동 활동 시 또래와 의견 충돌\n10107,O,O,O,X,X,중,노래 부르기 활동 소극적 참여\n10108,X,O,O,O,O,상,첫 활동 지시 이해 지연\n10109,X,X,O,X,X,하,도구 사용 미숙 및 주변 탐색 부족\n10110,O,X,X,O,X,중,가을 날씨에 따른 생활 모습 이해 필요" 
+            }
+        };
+
+        // DOM Elements
+        const btn = document.getElementById('generateBtn');
+        const errorEl = document.getElementById('errorMessage');
+        const emptyState = document.getElementById('emptyState');
+        const loadingState = document.getElementById('loadingState');
+        const resultState = document.getElementById('resultState');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultCountBadge = document.getElementById('resultCountBadge');
+        
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const studentCountInput = document.getElementById('studentCount');
+        const studentInputsContainer = document.getElementById('studentInputsContainer');
+        
+        const gradeSelect = document.getElementById('gradeSelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const areaInput = document.getElementById('areaInput');
+
+        // Modal Elements
+        const observationModal = document.getElementById('observationModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const btnOpenObservationModal = document.getElementById('btnOpenObservationModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const btnCloseModalTop = document.getElementById('btnCloseModalTop');
+
+        // File Viewer Modal Elements
+        const fileViewModal = document.getElementById('fileViewModal');
+        const fileViewTitle = document.getElementById('fileViewTitle');
+        const fileViewContent = document.getElementById('fileViewContent');
+        const btnCloseFileView = document.getElementById('btnCloseFileView');
+        const btnConfirmFileView = document.getElementById('btnConfirmFileView');
+
+        // Result State Elements
+        const btnToggleResults = document.getElementById('btnToggleResults');
+        const btnExpandResults = document.getElementById('btnExpandResults');
+        const collapsedButtonBar = document.getElementById('collapsedButtonBar');
+        const leftInputPanel = document.getElementById('leftInputPanel');
+        const rightResultPanel = document.getElementById('rightResultPanel');
+        const btnDownloadResults = document.getElementById('btnDownloadResults');
+        const resultHeadingText = document.getElementById('resultHeadingText');
+
+        // Results Card Collapse / Expand Handler (깔끔한 접기 UI 지원)
+        function collapseResultsPanel() {
+            // 결과창 접기: 결과물 전체를 감추고 깔끔한 세로 열기 버튼만 표시
+            resultState.classList.add('hidden');
+            emptyState.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            collapsedButtonBar.classList.remove('hidden');
+            collapsedButtonBar.classList.add('flex');
+
+            leftInputPanel.classList.remove('md:w-5/12');
+            leftInputPanel.classList.add('md:w-[calc(100%-3.5rem)]');
+
+            rightResultPanel.classList.remove('md:w-7/12', 'p-6');
+            rightResultPanel.classList.add('md:w-14', 'p-2', 'bg-gray-50', 'border-l', 'border-gray-200');
+        }
+
+        function expandResultsPanel() {
+            // 결과창 펼치기: 기본 5:7 뷰 복원
+            collapsedButtonBar.classList.add('hidden');
+            collapsedButtonBar.classList.remove('flex');
+
+            if (generatedResultsData && generatedResultsData.length > 0) {
+                resultState.classList.remove('hidden');
+            } else {
+                emptyState.classList.remove('hidden');
+            }
+
+            leftInputPanel.classList.remove('md:w-[calc(100%-3.5rem)]');
+            leftInputPanel.classList.add('md:w-5/12');
+
+            rightResultPanel.classList.remove('md:w-14', 'p-2', 'bg-gray-50', 'border-l', 'border-gray-200');
+            rightResultPanel.classList.add('md:w-7/12', 'p-6');
+        }
+
+        btnToggleResults.addEventListener('click', collapseResultsPanel);
+        btnExpandResults.addEventListener('click', expandResultsPanel);
+
+        // 과목별 기본 프리셋 로드 함수
+        function loadPresetForSubject(subject) {
+            const preset = subjectPresets[subject] || subjectPresets["수학"];
+            areaInput.value = preset.area;
+            criteriaText = preset.criteria;
+            resultsText = preset.results;
+
+            const fnCriteria = document.getElementById('filename-criteria');
+            fnCriteria.textContent = `✅ 기본 예시 탑재: [내황초 ${subject} 기준안]`;
+            fnCriteria.classList.remove('hidden');
+
+            const fnResults = document.getElementById('filename-results');
+            fnResults.textContent = `✅ 기본 예시 탑재: [${subject} 10명 가상 결과]`;
+            fnResults.classList.remove('hidden');
+
+            studentCountInput.value = 10;
+            renderStudentInputs(null);
+        }
+
+        // File Viewer Modal Handlers
+        const openFileViewModal = (title, content) => {
+            fileViewTitle.textContent = title;
+            fileViewContent.textContent = content;
+            fileViewModal.classList.remove('hidden');
+            fileViewModal.classList.add('flex');
+        };
+
+        const closeFileViewModal = () => {
+            fileViewModal.classList.add('hidden');
+            fileViewModal.classList.remove('flex');
+        };
+
+        btnCloseFileView.addEventListener('click', closeFileViewModal);
+        btnConfirmFileView.addEventListener('click', closeFileViewModal);
+
+        // Modal Handlers
+        btnOpenObservationModal.addEventListener('click', () => {
+            const grade = gradeSelect.value;
+            const subject = subjectSelect.value;
+            const area = areaInput.value.trim() || '영역 미지정';
+            modalTitle.textContent = `[${grade} ${subject} - ${area}] 관찰 평가 입력`;
+
+            observationModal.classList.remove('hidden');
+            observationModal.classList.add('flex');
+        });
+
+        const closeModal = () => {
+            observationModal.classList.add('hidden');
+            observationModal.classList.remove('flex');
+        };
+
+        btnCloseModal.addEventListener('click', closeModal);
+        btnCloseModalTop.addEventListener('click', closeModal);
+
+        // State management for context switching
+        let contextStates = {};
+        
+        function getCurrentContextKey() {
+            return `${gradeSelect.value}-${subjectSelect.value}-${areaInput.value.trim()}`;
+        }
+        let lastContextKey = getCurrentContextKey();
+
+        function renderStudentInputs(savedObs = null) {
+            let count = parseInt(studentCountInput.value);
+            if (isNaN(count) || count < 1) count = 1;
+            
+            let obsToRestore = savedObs;
+            if (!obsToRestore) {
+                obsToRestore = {};
+                const existingTextareas = studentInputsContainer.querySelectorAll('textarea');
+                existingTextareas.forEach(ta => {
+                    obsToRestore[ta.id] = ta.value;
+                });
+            }
+            
+            studentInputsContainer.innerHTML = '';
+            for (let i = 1; i <= count; i++) {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-xl border shadow-sm border-gray-200';
+                div.innerHTML = `
+                    <label class="block text-sm font-bold text-indigo-700 mb-2 flex justify-between">
+                        <span>학생 ${i} (순번/학번 매칭용) 관찰 평가</span>
+                        <span class="text-xs text-gray-400 font-normal">(선택 사항)</span>
+                    </label>
+                    <textarea id="student-obs-${i}" class="w-full border-gray-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 border" rows="3" placeholder="선생님의 관찰 메모나 학생의 특성을 자유롭게 적어주세요."></textarea>
+                `;
+                studentInputsContainer.appendChild(div);
+                
+                if (obsToRestore[`student-obs-${i}`]) {
+                    document.getElementById(`student-obs-${i}`).value = obsToRestore[`student-obs-${i}`];
+                }
+            }
+        }
+        
+        studentCountInput.addEventListener('change', () => renderStudentInputs(null));
+
+        function saveStateToKey(key) {
+            let obs = {};
+            const existingTextareas = studentInputsContainer.querySelectorAll('textarea');
+            existingTextareas.forEach(ta => {
+                obs[ta.id] = ta.value;
+            });
+            contextStates[key] = {
+                resultsText: resultsText,
+                filenameText: document.getElementById('filename-results').textContent,
+                isFileHidden: document.getElementById('filename-results').classList.contains('hidden'),
+                studentCount: studentCountInput.value,
+                observations: obs
+            };
+        }
+
+        function loadStateFromKey(key) {
+            const state = contextStates[key];
+            if (state) {
+                resultsText = state.resultsText || "";
+                const filenameResults = document.getElementById('filename-results');
+                filenameResults.textContent = state.filenameText || "";
+                if (state.isFileHidden) {
+                    filenameResults.classList.add('hidden');
+                } else {
+                    filenameResults.classList.remove('hidden');
+                }
+                studentCountInput.value = state.studentCount || 1;
+                renderStudentInputs(state.observations);
+            } else {
+                const subject = subjectSelect.value;
+                loadPresetForSubject(subject);
+            }
+        }
+
+        function handleContextChange() {
+            saveStateToKey(lastContextKey); 
+            lastContextKey = getCurrentContextKey(); 
+            loadStateFromKey(lastContextKey); 
+        }
+
+        gradeSelect.addEventListener('change', handleContextChange);
+        
+        subjectSelect.addEventListener('change', () => {
+            const subject = subjectSelect.value;
+            if(subjectPresets[subject]) {
+                areaInput.value = subjectPresets[subject].area;
+            }
+            handleContextChange();
+        });
+        
+        areaInput.addEventListener('change', handleContextChange);
+
+        // 초기 화면 로드 시 수학 프리셋 적용
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPresetForSubject("수학");
+        });
+
+        // Setup Dropzones
+        function setupDropzone(dropzoneId, inputId, filenameId, textCallback, typeLabel) {
+            const dropzone = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+            const filenameDisplay = document.getElementById(filenameId);
+
+            dropzone.addEventListener('click', (e) => {
+                if (e.target !== filenameDisplay) {
+                    input.click();
+                }
+            });
+
+            filenameDisplay.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                const content = typeLabel === 'criteria' ? criteriaText : resultsText;
+                if(content) {
+                    const cleanFileName = filenameDisplay.textContent.replace('✅ 첨부됨: ', '');
+                    openFileViewModal(`업로드된 파일 확인 (${cleanFileName})`, content);
+                }
+            });
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-indigo-500', 'bg-indigo-50');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0], filenameDisplay, textCallback);
+                }
+            });
+
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0], filenameDisplay, textCallback);
+                }
+            });
+        }
+
+        function handleFile(file, displayEl, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                callback(e.target.result);
+                displayEl.textContent = `✅ 첨부됨: ${file.name}`;
+                displayEl.classList.remove('hidden');
+            };
+            reader.readAsText(file);
+        }
+
+        setupDropzone('dropzone-criteria', 'file-criteria', 'filename-criteria', (text) => criteriaText = text, 'criteria');
+        setupDropzone('dropzone-results', 'file-results', 'filename-results', (text) => resultsText = text, 'results');
+
+        // CSV Template Download (단원/성취기준 추가, 이름 제외)
+        document.getElementById('btnDownloadTemplate').addEventListener('click', () => {
+            const bom = "\uFEFF";
+            const csvContent = 
+                "단원명,여기에 단원명 입력\n" +
+                "성취기준,여기에 성취기준 입력\n" +
+                "학번,문항1,문항2,문항3,문항4,문항5,성취수준,오답유형\n" +
+                "10101,O,X,O,O,O,상,2번 개념 오류\n";
+            
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "학생평가결과_입력양식(익명화).csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Results CSV Download (가독성을 극대화한 구조화 보고서 양식)
+        document.getElementById('btnDownloadResults').addEventListener('click', () => {
+            if (!generatedResultsData || generatedResultsData.length === 0) {
+                return;
+            }
+            const bom = "\uFEFF";
+            const grade = gradeSelect.value;
+            const subject = subjectSelect.value;
+            const area = areaInput.value.trim() || '영역 미지정';
+
+            let csvContent = "";
+            // 상단 리포트 메타 헤더
+            csvContent += `[외솔 AI 평가 튜터 - 학생별 종합 평가 분석 리포트]\n`;
+            csvContent += `대상,${grade} ${subject} (${area}),생성일시,${new Date().toLocaleDateString('ko-KR')}\n`;
+            csvContent += `총 분석 인원,${generatedResultsData.length}명\n`;
+            csvContent += `========================================================================================\n\n`;
+
+            // 학생별 카드 형태의 가독성 높은 2단 테이블 구조
+            generatedResultsData.forEach((st, idx) => {
+                csvContent += `[학생 ${idx + 1}] 학번: ${st.student_id}\n`;
+                csvContent += `매칭 외솔 역량,"${(st.competency || '').replace(/"/g, '""')}"\n`;
+                csvContent += `역량 매칭 이유,"${(st.reason || '').replace(/"/g, '""')}"\n`;
+                csvContent += `교과 세특 평어(나이스용),"${(st.neis_comment || '').replace(/"/g, '""')}"\n`;
+                csvContent += `학생 개별 피드백,"${(st.feedback || '').replace(/"/g, '""')}"\n`;
+                csvContent += `변화 정도 분석,"${(st.growth || '').replace(/"/g, '""')}"\n`;
+                csvContent += `후속 학습 방향,"${(st.next_step || '').replace(/"/g, '""')}"\n`;
+                csvContent += `----------------------------------------------------------------------------------------\n\n`;
+            });
+
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `외솔평가리포트_${subject}_${grade}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Generate Button Event
+        btn.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim();
+            const criteria = criteriaText.trim();
+            const results = resultsText.trim();
+            
+            if (!apiKey) {
+                errorEl.innerHTML = "<strong>오류:</strong> Google Gemini API 키를 입력해주세요.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!criteria || !results) {
+                errorEl.innerHTML = "<strong>데이터 누락:</strong> 평가 기준안과 학생 평가 결과 파일을 모두 업로드해주세요.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            errorEl.classList.add('hidden');
+
+            let count = parseInt(studentCountInput.value);
+            if (isNaN(count) || count < 1) count = 1;
+            let observations = [];
+            for(let i = 1; i <= count; i++) {
+                let obsText = document.getElementById(`student-obs-${i}`).value.trim();
+                observations.push({ 
+                    student_identifier: `입력 순번 ${i}`, 
+                    observation: obsText || "" 
+                });
+            }
+
+            emptyState.classList.add('hidden');
+            resultState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            // 시스템 프롬프트 (JSON 스키마 지정하여 정확한 형태 강제)
+            let systemPrompt = `당신은 대한민국 울산 교육청의 '외솔교육' 철학을 깊이 이해하고 있는 탁월한 수석교사입니다.
+입력된 대상 정보(학년, 과목)와 함께, 파일(CSV)에 포함된 단원명/성취기준, 평가 기준안, 학생 평가 결과(문항별 결과 포함), 그리고 교사의 학생별 관찰 평가(메모)를 종합적으로 분석하여, 각 학생의 활동에서 가장 돋보인 '외솔 6대 핵심역량' 중 1~2가지를 자동으로 찾아내어 매칭하세요.
+
+[외솔교육 6대 핵심역량 의미]
+1. 외솔 세움 역량(외솔 자주성, 자기관리 역량): 남이 아닌 나의 기준으로 배움과 삶을 설계하고, 실수해도 다시 도전하며 나를 스스로 세우는 힘
+2. 외솔 벼림 역량(외솔 문해력, 지식정보처리 역량): 넘쳐나는 글과 정보, 디지털 매체를 깊이 읽고 참과 거짓을 가려내며, 창의적인 생각으로 생각을 벼리는 힘
+3. 외솔 지음 역량(외솔 시민성, 창의적 사고 역량): 정답을 찾는 데 그치지 않고 지식과 경험을 새롭게 엮어, 세상에 없던 생각과 가치를 스스로 지어내는 힘
+4. 외솔 누림 역량(외솔 자주성, 심미적 감성 역량): 한글의 아름다움과 울산의 문화·자연을 느끼고 즐기며, 삶을 풍요롭게 가꾸어 문화를 누리는 힘
+5. 외솔 이음 역량(외솔 시민성/실천성, 협력적 소통 역량): 언어와 문화가 다른 친구와도 존중하며 대화·협력하여, 서로 다른 우리를 하나로 잇는 힘
+6. 외솔 나섬 역량(외솔 시민성/실천성, 공동체/생태감수성 역량): 교실에서 배운 앎을 삶으로 가져와, 공동체와 사회적 문제를 외면하지 않고 먼저 행동으로 나서는 힘
+
+[🚨 문장 작성 핵심 지침 - 어색한 문맥 및 연결성 오류 방지]
+1. 'neis_comment(교과 세특)' 작성 시 다음 문맥 연결 규칙을 반드시 지킬 것:
+   - ❌ 어색한 문장 금지: "성질을 잘 이해하고 있으나, 글을 다듬는 과정에 집중함"과 같이 앞(장점)과 뒤(노력/보완)의 인과관계가 맞지 않는 역접(~있으나, ~하지만) 남발 금지.
+   - ⭕ 자연스러운 문장 구조 권장:
+     * 문장을 무리하게 한 줄로 합치지 말고 2개 문장으로 명확히 분리할 것.
+     * 형태 1 (우수 학생): "단원의 핵심 개념과 원리를 명확히 이해하고 바르게 적용함. 나아가 자신의 풀이 과정을 논리적인 글과 표현으로 완성도 높게 서술함."
+     * 형태 2 (발전 필요 학생): "도형의 핵심 성질을 바르게 파악하고 있음. 다만 풀이 과정을 논리적으로 서술하는 데 다소 어려움이 있어, 자신의 생각을 단계별 글로 정돈하여 표현하는 연습이 보완된다면 더 큰 성장이 기대됨."
+     * 형태 3 (보충 필요 학생): "기초 개념을 익히는 과정에 성실히 참여함. 단계별 문제 해결 과정에 대한 이해와 꾸준한 복습이 요구됨."
+2. 외솔 역량 키워드를 기계적으로 문장에 억지로 욱여넣지 말고, 학생의 구체적 성취 행동과 자연스럽게 녹여낼 것.
+3. 객관적인 생활기록부 기재 표준 종결어미(~함, ~임, ~을 보임, ~가 기대됨 등)를 준수할 것.
+
+[출력 형식 및 지시사항]
+- 🚨 [필수] 반드시 아래의 JSON Array 형식으로만 반환할 것. (마크다운 백틱 제외, 순수 JSON 정형 데이터)
+[
+  {
+    "student_id": "학번 (예: 10101)",
+    "competency": "매칭된 외솔 역량명 (예: 외솔 세움 역량)",
+    "reason": "역량을 매칭한 이유 (1~2문장)",
+    "neis_comment": "교과 세부능력 및 특기사항 (문맥이 자연스러운 나이스용 문어체, 2~3문장)",
+    "feedback": "학생 맞춤형 개별 피드백 (다정한 구어체 ~했구나)",
+    "growth": "변화 정도 분석 (구체적 성장 서술)",
+    "next_step": "후속 학습 방향 (실질적 배움 안내)"
+  }
+]
+- 개인정보 보호를 위해 학생의 이름 대신 '학번(student_id)'을 기준으로 식별하세요.
+- 🚨 [중요] 학생이 하지 않은 구체적인 특정 행동(예: '친구를 도와주었다', '발표를 주도했다' 등)을 거짓으로 지어내지는 마세요. 단, 입력된 '지필/수행 결과(성취수준, 오답유형)'와 파일에 포함된 '단원명/성취기준'을 바탕으로 학생의 학습 태도, 노력의 과정, 사고력 등을 교육학적으로 풍부하고 따뜻하게 추론하여 내용이 빈약해지지 않도록 알차고 구체적으로 작성해 주세요.
+`;
+
+            let userPrompt = `
+[학습 대상 정보]
+- 학년: ${gradeSelect.value}
+- 과목: ${subjectSelect.value}
+- 평가 영역: ${areaInput.value.trim() || '미지정'}
+
+[입력 데이터]
+- 평가 기준안 및 문항지:
+${criteria}
+
+- 학생 단체 평가 결과 데이터 (단원명, 성취기준, 이름 없이 학번과 문항별 결과로 구성됨):
+${results}
+
+- 학생별 교사 관찰 데이터 (JSON, 특이사항):
+${JSON.stringify(observations, null, 2)}
+`;
+
+            try {
+                // Gemini API 호출 (최신 공식 모델 적용 및 API 표준 규격 준수)
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        generationConfig: {
+                            temperature: 0.5, // 팩트에 기반하되 문맥을 풍부하고 자연스럽게 구성하도록 조정
+                            responseMimeType: "application/json" // JSON 강제
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "API 호출 중 오류가 발생했습니다.");
+                }
+
+                const data = await response.json();
+                let resultText = data.candidates[0].content.parts[0].text;
+                const parsedData = JSON.parse(resultText);
+
+                if (parsedData && parsedData.length > 0) {
+                    generatedResultsData = parsedData;
+
+                    resultsContainer.innerHTML = '';
+                    parsedData.forEach((result, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-4 animate-[fadeIn_0.5s_ease-out]';
+                        card.style.animationDelay = `${index * 0.1}s`;
+                        
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start border-b pb-3 border-gray-100">
+                                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm">
+                                        No.
+                                    </div>
+                                    학번: ${result.student_id}
+                                </h3>
+                            </div>
+
+                            <div class="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-blue-600 bg-blue-100 px-2 py-0.5 rounded text-xs font-bold shadow-sm whitespace-nowrap">✨ 외솔 역량 매칭</span>
+                                    <span class="font-bold text-blue-900 break-keep">${result.competency}</span>
+                                </div>
+                                <p class="text-sm text-blue-800 break-keep">${result.reason}</p>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-500 uppercase mb-1 whitespace-nowrap">교과 세부능력 및 특기사항 (나이스용)</h4>
+                                <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 border border-gray-100 leading-relaxed relative group break-keep">
+                                    ${result.neis_comment}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-500 uppercase mb-1 whitespace-nowrap">학생 맞춤형 개별 피드백</h4>
+                                <div class="bg-indigo-50/50 rounded-xl p-4 text-sm text-indigo-800 border border-indigo-100 leading-relaxed break-keep">
+                                    ${result.feedback}
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-1 whitespace-nowrap">변화 정도 분석</h4>
+                                    <div class="bg-gray-50 rounded-xl p-3 text-sm text-gray-600 border border-gray-100 h-full break-keep">
+                                        ${result.growth}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-1 whitespace-nowrap">후속 학습 방향</h4>
+                                    <div class="bg-gray-50 rounded-xl p-3 text-sm text-gray-600 border border-gray-100 h-full break-keep">
+                                        ${result.next_step}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        resultsContainer.appendChild(card);
+                    });
+
+                    resultCountBadge.textContent = `${parsedData.length}명 완료`;
+                    loadingState.classList.add('hidden');
+                    resultState.classList.remove('hidden');
+                } else {
+                    throw new Error("결과를 분석하지 못했습니다. 형식을 확인해주세요.");
+                }
+            } catch (error) {
+                console.error(error);
+                errorEl.innerHTML = `<strong>오류 발생:</strong> ${error.message}`;
+                errorEl.classList.remove('hidden');
+                loadingState.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>외솔 AI 평가 튜터</title>
     <script src="https://cdn.tailwindcss.com"></script>
