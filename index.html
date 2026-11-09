@@ -83,7 +83,7 @@
         /* 파일 올리기 상자 */
         .drop { display: block; background: var(--card); border: 1.5px dashed var(--line-strong); border-radius: var(--r-md); padding: 20px; text-align: center; cursor: pointer; transition: border-color 150ms var(--ease), background-color 150ms var(--ease); }
         .drop:hover, .drop.is-over { border-color: var(--action); background: var(--action-tint); }
-        .file-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; max-width: 100%; min-height: 44px; padding: 8px 14px; border-radius: var(--r-sm); background: var(--action-tint); color: var(--action); font-size: 14px; font-weight: 600; text-align: left; word-break: break-all; border: 0; cursor: pointer; transition: background-color 150ms var(--ease); }
+        .file-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; max-width: 100%; min-height: 44px; padding: 8px 14px; border-radius: var(--r-sm); background: var(--action-tint); color: var(--action); font-size: 14px; font-weight: 600; text-align: left; word-break: keep-all; overflow-wrap: anywhere; border: 0; cursor: pointer; transition: background-color 150ms var(--ease); }
         .file-chip:hover { background: #E1ECE5; }
 
         /* 상태 안내 */
@@ -334,7 +334,8 @@
                                 <h2 id="resultHeadingText" class="font-batang text-[22px] font-bold text-gray-900 break-keep">학생별 평가 리포트</h2>
                                 <span id="resultCountBadge" class="text-[14px] font-semibold text-gray-600 tabular"></span>
                             </div>
-                            <div class="flex gap-2 items-center">
+                            <div class="flex gap-2 items-center flex-wrap">
+                                <button id="btnResetReport" type="button" class="btn btn--secondary" title="이 영역의 리포트를 지우고 처음 안내 화면으로 돌아갑니다">리포트 초기화</button>
                                 <button id="btnToggleResults" type="button" class="btn btn--secondary" title="리포트를 접고 입력창을 넓게 봅니다">리포트 접기</button>
                                 <button id="btnDownloadResults" type="button" class="btn btn--secondary">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"></path></svg>
@@ -2117,7 +2118,7 @@
             progressText.textContent = (run.progressLabel || '') + ' · ' + msg;
         }
 
-        const lockables = () => [btn, btnResume, gradeSelect, subjectSelect, areaInput, document.getElementById('file-criteria'), document.getElementById('file-results')];
+        const lockables = () => [btn, btnResume, document.getElementById('btnResetReport'), gradeSelect, subjectSelect, areaInput, document.getElementById('file-criteria'), document.getElementById('file-results')];
         function setBusy(busy) {
             lockables().forEach(el => { el.disabled = busy; });
                         btn.querySelector('span').textContent = busy ? '작성 중…' : '평어와 피드백 작성하기';
@@ -2364,6 +2365,24 @@ ${taskText}` }];
 
         btn.addEventListener('click', () => generate({ resume: false }));
         btnResume.addEventListener('click', () => generate({ resume: true }));
+
+        // 리포트 초기화: 지금 학년·과목·영역의 리포트만 지우고 6대 역량 안내 화면으로 돌아감
+        // (올린 파일과 관찰 평가는 그대로 둠)
+        document.getElementById('btnResetReport').addEventListener('click', () => {
+            if (run || !(generatedResultsData && generatedResultsData.length)) return;
+            const edited = generatedResultsData.filter(r => r.edits && Object.keys(r.edits).length).length;
+            const msg = `[${currentLabel()}] 리포트를 지울까요?`
+                + (edited ? `\n직접 수정한 ${edited}명의 내용도 함께 사라집니다.` : '')
+                + `\n올린 파일과 관찰 평가는 그대로 남습니다.`;
+            if (!confirm(msg)) return;
+            generatedResultsData = [];
+            resumeBox.classList.add('hidden');
+            errorEl.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+            showReportForContext();
+            saveCurrentState();
+            showToast('리포트를 지웠어요.');
+        });
         // ================================================================
     </script>
 </body>
